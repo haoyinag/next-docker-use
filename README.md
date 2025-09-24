@@ -6,6 +6,8 @@
 - 使用 pnpm 作为包管理器，并内置 Vitest、ESLint、Prettier、Husky 等工程化工具。
 - 本仓库提供开发与生产两套 Docker 方案，帮助团队成员快速对齐环境。
 
+> 👉 初次上手请阅读《[新成员开发流程指南](docs/developer-onboarding.md)》，其中包含从 git clone、Docker 启动到代码提交的完整步骤。
+
 ## Git 协作指南
 
 - 默认主干：`main`。推荐使用 `feature/<topic>`、`fix/<issue>` 等前缀建立功能分支。
