@@ -1,0 +1,23 @@
+# Dependencies & caches
+node_modules
+.next
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+
+# Build artifacts
+out
+coverage
+dist
+
+# Local environment & configs
+.env*
+!.env.example
+.history
+.husky/_
+
+# Editor & OS files
+.DS_Store
+.vscode
+.idea

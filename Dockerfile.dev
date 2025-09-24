@@ -1,0 +1,23 @@
+
+FROM node:20-bookworm
+
+# 启用 corepack 并激活 pnpm（与 package.json 声明版本兼容）
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@latest-1 --activate
+
+# 关闭 Next Telemetry（可选）
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# 工作目录
+WORKDIR /app
+
+# 仅复制包管理文件，利用缓存加速依赖安装
+COPY package.json ./
+# 若不存在 lock 文件也不会报错
+COPY pnpm-lock.yaml* ./
+
+# 预装依赖（镜像层缓存）。开发环境不加 --frozen-lockfile，便于本地调试。
+RUN pnpm install
+
+# 缺省命令（也可在 compose 里覆盖）
+CMD ["bash", "-lc", "pnpm dev"]
