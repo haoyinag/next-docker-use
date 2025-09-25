@@ -2,33 +2,24 @@ services:
   web:
     container_name: nextjs-app-dev
     build:
-      context: ..              # 构建上下文指向项目根目录
+      context: ..
       dockerfile: Dockerfile.dev
-    # 使用非 root 用户（官方 node 镜像内置 uid=1000 的 node 用户）
-    user: "node"
     environment:
       NODE_ENV: development
       NEXT_TELEMETRY_DISABLED: "1"
-      # 为 Docker Desktop（macOS/Windows）提升 HMR 可靠性
       WATCHPACK_POLLING: "true"
       WATCHPACK_POLL_INTERVAL: "1000"
+    env_file:
+      - ../.env.local
     working_dir: /app
     ports:
       - "3000:3000"
     volumes:
-      # 将宿主机源码挂载到容器
       - ../:/app:cached
-      # 使用命名卷隔离依赖与构建缓存，避免与宿主机冲突
       - node_modules:/app/node_modules
       - next_cache:/app/.next
-    command: >
-      bash -lc "
-      if [ ! -d node_modules ] || [ -z \"$(ls -A node_modules 2>/dev/null)\" ]; then
-        echo '→ Installing deps into named volume...' &&
-        pnpm install;
-      fi;
-      pnpm dev
-      "
+    entrypoint: ["/bin/bash", "/app/docker/dev-entrypoint.sh"]
+    stdin_open: true
     tty: true
 
 volumes:

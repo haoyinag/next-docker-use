@@ -1,23 +1,18 @@
+# Dockerfile.dev
+FROM node:20-alpine
 
-FROM node:20-bookworm
+# 更稳的国内源 + 直接全局安装 pnpm（绕过 corepack 的网络不稳定）
+RUN npm config set registry https://registry.npmmirror.com \
+  && npm i -g pnpm@9 \
+  && apk add --no-cache bash su-exec libc6-compat
 
-# 启用 corepack 并激活 pnpm（与 package.json 声明版本兼容）
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@latest-1 --activate
-
-# 关闭 Next Telemetry（可选）
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# 工作目录
 WORKDIR /app
 
-# 仅复制包管理文件，利用缓存加速依赖安装
+# 只拷贝必要的包管理文件（不要拷贝 pnpm-workspace.yaml）
 COPY package.json ./
-# 若不存在 lock 文件也不会报错
 COPY pnpm-lock.yaml* ./
 
-# 预装依赖（镜像层缓存）。开发环境不加 --frozen-lockfile，便于本地调试。
 RUN pnpm install
 
-# 缺省命令（也可在 compose 里覆盖）
 CMD ["bash", "-lc", "pnpm dev"]
