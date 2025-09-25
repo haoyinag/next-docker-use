@@ -2,140 +2,179 @@
 
 > 面向第一次接触本项目、对 Docker 及协同规范不熟悉的同学。按顺序完成以下步骤，即可独立完成开发、提交与运行流程。
 
-## 1. 基础准备
+# 全容器开发任务清单（Next.js + VS Code Dev Containers）
 
-- **账户**：确认已在团队 Git 平台（GitHub/GitLab）拥有访问权限。
-- **工具**：
-  - [Git](https://git-scm.com/) ≥ 2.40，用于克隆和提交代码。
-  - [Docker Desktop](https://www.docker.com/products/docker-desktop/) 或 Docker Engine ≥ 24，用于运行开发容器。
-  - （可选）Node.js ≥ 20 与 pnpm：若希望在宿主机直接运行脚本或安装 Git hooks。
-- **编辑器**：推荐 VS Code，并安装官方的 Docker、ESLint、Tailwind CSS、Vitest 等插件，提升开发体验。
+## A. 前置准备（一次性）
 
-## 2. 克隆仓库
+1. 安装 **Docker Desktop**（或 Linux 上的 Docker Engine + Compose v2），确保能执行 `docker compose version`。
+2. 安装 **VS Code** 与扩展：
 
-```bash
-# 任选本地工作目录
-cd ~/workspace
-
-# 克隆项目（示例使用 SSH）
-git clone git@github.com:your-org/next-docker-use.git
-cd next-docker-use
-```
-
-## 3. 初始化环境变量
-
-1. 复制示例文件，生成你的本地配置：
-   ```bash
-   cp .env.example .env.local
-   ```
-2. 根据需要，在 `.env.local` 中填写后端 API 地址、密钥等变量；开发阶段没有特殊要求可以留空。
-
-## 4. 启动 Docker 开发环境
-
-```bash
-docker compose -f docker/compose.dev.yml up --build
-```
-
-- 首次执行会：
-  - 构建基于 `node:20` 的开发镜像。
-  - 在容器内运行 `pnpm install`，并将依赖写入命名卷 `node_modules`，避免污染宿主机。
-  - 启动 `pnpm dev`，默认监听 `http://localhost:3000`。
-- 终端显示 `ready - started server on ...` 后即可在浏览器访问页面。
-- 如需同时操作其他命令，可新开终端会话，`docker compose ...` 命令保持运行。
-
-### 常用容器命令
-
-```bash
-# 查看服务列表
-docker compose -f docker/compose.dev.yml ps
-
-# 进入容器执行命令，如运行测试
-docker exec -it nextjs-app-dev sh
-# 然后在容器内：pnpm test
-
-# 停止并移除服务
-docker compose -f docker/compose.dev.yml down
-
-# 清理依赖缓存卷（仅在依赖异常时使用）
-docker compose -f docker/compose.dev.yml down -v
-```
-
-## 5. 本地开发建议
-
-- **代码编辑**：在宿主机使用熟悉的 IDE/编辑器，所有修改会实时映射进容器。
-- **热更新**：Next.js + Tailwind HMR 默认开启；若在 Docker Desktop 下偏慢，可调节 `docker/compose.dev.yml` 中的 `WATCHPACK_POLL_INTERVAL`。
-- **调试日志**：保留 `docker compose` 终端窗口即可观察 Next.js 输出的日志与错误。
-
-## 6. 运行测试与检查
-
-- 宿主机（需安装 Node/pnpm）：
-  ```bash
-  pnpm lint
-  pnpm typecheck
-  pnpm test
-  ```
-- 或在容器内执行同样命令：
-  ```bash
-  docker exec -it nextjs-app-dev pnpm lint
-  docker exec -it nextjs-app-dev pnpm typecheck
-  docker exec -it nextjs-app-dev pnpm test
-  ```
-- 在提交代码前建议至少执行 `pnpm lint` 和 `pnpm test`，确保与 CI 一致。
-
-## 7. Git 协作流程
-
-1. **设置用户名 / 邮箱（首次）**：
-   ```bash
-   git config user.name "Your Name"
-   git config user.email "you@example.com"
-   ```
-2. **新建功能分支**：
-   ```bash
-   git checkout -b feature/short-topic
-   ```
-3. **常规开发循环**：
-   - 编辑代码 → 保存 → 浏览器查看效果 → 在容器日志中观察是否报错。
-   - 若变更涉及依赖，容器会自动安装；如未触发，可手动执行 `docker exec -it nextjs-app-dev pnpm install`。
-4. **查看变更**：
-   ```bash
-   git status
-   git diff
-   ```
-5. **提交前检查**：确保 `pnpm lint && pnpm test` 全部通过。
-6. **提交代码**（遵循 Conventional Commits，例如 `feat:`、`fix:`）：
-   ```bash
-   git add .
-   git commit -m "feat: add onboarding guide"
-   ```
-   Husky 会自动执行 `lint-staged`、Vitest 等校验；若失败，根据提示修复后重新提交。
-7. **推送远程并创建合并请求**：
-   ```bash
-   git push origin feature/short-topic
-   ```
-   在代码托管平台发起 Merge Request / Pull Request，指派审核人。
-
-## 8. 生产镜像验证（可选）
-
-- 构建：
-  ```bash
-  docker build -t nextjs-app:prod .
-  ```
-- 运行：
-  ```bash
-  docker compose -f docker/compose.prod.yml up --build -d
-  ```
-- 停止：
-  ```bash
-  docker compose -f docker/compose.prod.yml down
-  ```
-
-## 9. 常见问题排查
-
-- **端口被占用**：检查本机是否已有其他服务使用 3000 端口，可通过 `lsof -i :3000` 查找并关闭。
-- **依赖异常或锁文件冲突**：运行 `docker compose -f docker/compose.dev.yml down -v` 清理依赖卷后重新启动。
-- **Git hooks 未执行**：确认仓库根目录存在 `.husky/_`，如缺失可在宿主机运行 `pnpm install` 或 `pnpm prepare` 重新安装。
-- **Docker 构建缓慢**：首次构建包含依赖安装阶段属正常；后续会利用缓存。也可在宿主机使用 CDN/镜像加速。
+   * Dev Containers（ms-vscode-remote.remote-containers）
+   * Prettier、ESLint、Tailwind CSS（已在 devcontainer.json 中声明，也会在容器内自动装）
+3. Windows 用户：开启 **WSL2**，并在 **Linux 文件系统路径**（如 `/home/<user>/projects`）存代码，不要放到 `C:\`（性能与挂载稳定性更好）。
+4. 申请/配置私有镜像仓库或内部 npm 源（如有）。
 
 ---
 
-如在按照本流程操作时遇到任何问题，欢迎在团队渠道（Slack/企业微信/Issue）反馈，便于及时协助并完善文档。
+## B. 克隆与目录结构
+
+1. 克隆仓库到本机（建议 Linux/WSL2 路径）：
+
+   ```bash
+   git clone <repo-url> my-app && cd my-app
+   ```
+2. 确认关键结构（示例）：
+
+   ```
+   repo-root/
+     .devcontainer/
+       devcontainer.json
+     docker/
+       compose.dev.yml
+       Dockerfile.dev (可选/按项目实际)
+     package.json
+     ...
+   ```
+
+---
+
+## C. 配置 devcontainer（关键校验）
+
+1. 打开 `.devcontainer/devcontainer.json`，确认：
+
+   * `dockerComposeFile` 路径相对 **.devcontainer**：
+
+     ```json
+     "dockerComposeFile": "../docker/compose.dev.yml"
+     ```
+   * `service` 与 compose 中的服务名一致（例如 `web`）。
+   * `workspaceFolder` 与容器工作目录一致（例如 `/app`）。
+2. 打开 `docker/compose.dev.yml`，确认：
+
+   * `services.web` 存在，且 `working_dir: /app`（或与 `workspaceFolder` 对齐）。
+   * `volumes` 将项目根目录挂载到 `/app`，并（建议）为 `node_modules` 单独使用卷：
+
+     ```yaml
+     volumes:
+       - ..:/app:cached
+       - node_modules:/app/node_modules
+     ```
+   * （可选）`command` 启动命令符合项目（如 `npm install && npm run dev`）。
+
+---
+
+## D. 环境变量与依赖
+
+1. 按项目 README 将 `.env.example` 复制为 `.env.local` 或 `.env` 并填好必需项：
+
+   ```bash
+   cp .env.example .env.local
+   # 编辑 .env.local
+   ```
+2. 如需私有 npm 源/Token，放入 `.npmrc`/环境变量（遵循安全规范）。
+
+---
+
+## E. 首次启动（两步走）
+
+1. 先在宿主机验证 Compose 配置无误（可快速定位路径/语法问题）：
+
+   ```bash
+   docker compose -f docker/compose.dev.yml config
+   ```
+2. 在 VS Code 中打开仓库根目录，执行 **“Dev Containers: Reopen in Container”**（在容器中重新打开）。
+
+   * 首次会构建镜像/拉依赖，完成后 VS Code 会自动进入容器工作区。
+
+---
+
+## F. 启动后验证（开发可用性）
+
+1. 终端（容器内）确认 Node、包管理器可用：
+
+   ```bash
+   node -v
+   npm -v   # 或 pnpm/yarn -v
+   ```
+2. 跑开发服务（若没在 compose 的 `command` 中自动启动）：
+
+   ```bash
+   npm run dev
+   ```
+3. 打开浏览器访问 `http://localhost:3000`（或 compose 暴露的端口），确认页面能正常打开。
+4. 在容器内运行 Lint/格式化（确认扩展生效）：
+
+   ```bash
+   npm run lint
+   npm run format
+   ```
+
+---
+
+## G. 日常协同开发（最少流程）
+
+1. 拉取最新代码：`git pull`
+2. 在 VS Code 里 **“Reopen in Container”**（已打开的项目下次会自动进容器）。
+3. 在容器内开发、运行、调试、提交：
+
+   ```bash
+   npm run dev
+   git add .
+   git commit -m "feat: ..."
+   git push
+   ```
+
+---
+
+## H. 常见问题快速排查（10 分钟内搞定）
+
+1. **容器打不开（Exit code 14 / compose 调用失败）**
+
+   * 检查 `dockerComposeFile` **相对路径**是否正确（相对 `.devcontainer`）：`"../docker/compose.dev.yml"`
+   * `service` 名称与 compose 是否一致（如 `web`）。
+   * 在项目根目录运行：
+
+     ```bash
+     docker compose -f docker/compose.dev.yml config
+     docker compose -f docker/compose.dev.yml up -d
+     docker compose -f docker/compose.dev.yml logs -f web
+     ```
+2. **端口被占用**：修改 `compose.dev.yml` 中端口映射或释放占用。
+3. **依赖/权限问题（node_modules）**：使用容器卷 `node_modules:/app/node_modules`；必要时 `docker compose down -v` 清理卷后重启。
+4. **WSL2 性能/挂载异常**：把仓库放到 WSL2 的 Linux 路径（不是 `C:\` 挂载盘）。
+5. **查看详细日志**：VS Code 设置 `dev.containers.logLevel: "trace"`，然后 **Show Log**。
+6. **Compose v1/v2 混淆**：确保使用 `docker compose`（v2），不是 `docker-compose`（v1）。
+
+---
+
+## I. 退出与清理
+
+1. 停止开发服务：`Ctrl+C` 或关闭 VS Code。
+2. 停止容器（可选）：
+
+   ```bash
+   docker compose -f docker/compose.dev.yml down
+   ```
+3. 清理镜像/卷（需要时）：
+
+   ```bash
+   docker system prune -af
+   docker volume prune -f
+   ```
+
+---
+
+## J. 最终自检清单（勾选即过）
+
+* [ ] 已安装 Docker、VS Code、Dev Containers 扩展
+* [ ] 仓库位于（Linux/WSL2）合适路径
+* [ ] `.devcontainer/devcontainer.json` 的 `dockerComposeFile` 为 `../docker/compose.dev.yml`
+* [ ] `service` 与 compose 中 `services.<name>` 一致（例如 `web`）
+* [ ] `workspaceFolder` 与容器 `working_dir`、卷挂载路径一致（如 `/app`）
+* [ ] `.env.local` 等环境变量文件已就绪
+* [ ] `docker compose -f docker/compose.dev.yml config` 正常
+* [ ] VS Code 能 **Reopen in Container** 并进入容器
+* [ ] `npm run dev` 正常，`http://localhost:3000` 可访问
+* [ ] `npm run lint/format` 正常，提交代码无异常
+
+ 
